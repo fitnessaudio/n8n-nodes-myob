@@ -1,11 +1,41 @@
 {
   "name": "n8n-nodes-myob",
-  "version": "0.1.0",
-  "description": "n8n custom node for MYOB AccountRight",
+  "version": "0.4.0",
+  "description": "Simple n8n node to create sales orders in MYOB Business API with multiple line items",
+  "keywords": ["n8n-community-node-package", "n8n", "myob", "accountright", "sales-order"],
+  "license": "MIT",
+  "homepage": "https://github.com/dannyboi0077/n8n-nodes-myob#readme",
+  "author": {
+    "name": "Daniel",
+    "email": "daniel@example.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
   "main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "format": "prettier --write .",
+    "lint": "eslint . --ext .ts",
+    "lintfix": "eslint . --ext .ts --fix",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist",
+    "nodes",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/MyobOAuth2Api.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Myob.node.js"
+    ]
   },
   "dependencies": {
     "n8n-workflow": "^1.0.0"
@@ -13,6 +43,10 @@
   "devDependencies": {
     "typescript": "^5.0.0",
     "rimraf": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "prettier": "^3.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
   }
 }

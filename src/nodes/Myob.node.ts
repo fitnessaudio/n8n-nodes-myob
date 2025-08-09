@@ -1,132 +1,64 @@
 import {
   INodeType, INodeTypeDescription, IExecuteFunctions, INodeExecutionData,
-  NodeConnectionType, // <-- add this
-        } from 'n8n-workflow';
+  NodeConnectionType,
+} from 'n8n-workflow';
 import { myobRequest } from '../transport/MyobApi.request';
 
 export class Myob implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'MYOB AccountRight',
+		displayName: 'MYOB Sales Order',
 		name: 'myob',
-		group: ['transform'],
+		icon: 'file:myob.png',
+		group: ['output'],
 		version: 1,
         inputs: [NodeConnectionType.Main],
         outputs: [NodeConnectionType.Main],
-		description: 'Interact with MYOB AccountRight API',
-		defaults: { name: 'MYOB' },
+		description: 'Create sales orders in MYOB Business API',
+		defaults: { name: 'MYOB Sales Order' },
 		credentials: [
-			{ name: 'myobCompanyFileApi', required: true },
-			{ name: 'myobOAuth2Api', required: false }, // optional for Local API
+			{ name: 'myobOAuth2Api', required: true },
 		],
 		properties: [
-			{
-				displayName: 'Base URL',
-				name: 'baseUrl',
-				type: 'string',
-				default: 'https://api.myob.com/accountright/{companyFileGuid}',
-				required: true,
-			},
-			{
-				displayName: 'Resource',
-				name: 'resource',
-				type: 'options',
-				options: [{ name: 'Sales Order', value: 'salesOrder' }],
-				default: 'salesOrder',
-			},
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				displayOptions: { show: { resource: ['salesOrder'] } },
-				options: [
-					{ name: 'Create (Item)', value: 'createItem' },
-				],
-				default: 'createItem',
-			},
-
-			// ---------- Common fields ----------
 			{
 				displayName: 'Customer UID',
 				name: 'customerUid',
 				type: 'string',
 				default: '',
 				required: true,
-				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
-			},
-			{
-				displayName: 'Date',
-				name: 'date',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
+				description: 'The unique ID of the customer (GUID format)',
 			},
 			{
 				displayName: 'Tax Inclusive',
 				name: 'isTaxInclusive',
 				type: 'boolean',
 				default: true,
-				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
+				description: 'Whether prices include tax',
 			},
-			{
-				displayName: 'Journal Memo',
-				name: 'journalMemo',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
-			},
-
-			// ---------- Optional header fields ----------
 			{
 				displayName: 'Customer PO Number',
 				name: 'customerPo',
 				type: 'string',
 				default: '',
-				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
+				description: 'Customer purchase order number (optional)',
 			},
 			{
-				displayName: 'Promised Date',
-				name: 'promisedDate',
-				type: 'string',
-				default: '',
-				description: 'ISO string e.g. 2025-08-09T00:00:00',
-				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
-			},
-			{
-				displayName: 'Freight',
-				name: 'freight',
-				type: 'number',
-				default: 0,
-				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
-			},
-			{
-				displayName: 'Freight Tax Code UID',
-				name: 'freightTaxCodeUid',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
-			},
-
-			// ---------- Lines (Item layout) ----------
-			{
-				displayName: 'Lines (Item)',
-				name: 'linesItem',
+				displayName: 'Line Items',
+				name: 'lineItems',
 				type: 'fixedCollection',
 				typeOptions: { multipleValues: true },
-				default: [],
-				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
+				default: [{}],
+				required: true,
+				description: 'Line items for the sales order',
 				options: [
 					{
-						name: 'line',
-						displayName: 'Line',
+						name: 'item',
+						displayName: 'Line Item',
 						values: [
-							{ displayName: 'Item UID', name: 'itemUid', type: 'string', default: '' },
-							{ displayName: 'Quantity (ShipQuantity)', name: 'qty', type: 'number', default: 1 },
-							{ displayName: 'Unit Price', name: 'unitPrice', type: 'number', default: 0 },
-							{ displayName: 'Description Override', name: 'description', type: 'string', default: '' },
-							{ displayName: 'Discount %', name: 'discountPercent', type: 'number', default: 0 },
-							{ displayName: 'Discount Amount', name: 'discountAmount', type: 'number', default: 0 },
-							{ displayName: 'Tax Code UID', name: 'taxCodeUid', type: 'string', default: '' },
-							{ displayName: 'Location UID', name: 'locationUid', type: 'string', default: '' },
+							{ displayName: 'SKU (Item Number)', name: 'sku', type: 'string', default: '', required: true, description: 'The SKU/Item Number - will automatically lookup the MYOB Item UID' },
+							{ displayName: 'Quantity', name: 'quantity', type: 'number', default: 1, required: true },
+							{ displayName: 'Unit Price', name: 'unitPrice', type: 'number', default: 0, required: true },
+							{ displayName: 'Tax Code UID', name: 'taxCodeUid', type: 'string', default: '', description: 'The unique ID of the tax code (optional - uses item default if not specified)' },
+							{ displayName: 'Description', name: 'description', type: 'string', default: '', description: 'Optional description override (optional - uses item default if not specified)' },
 						],
 					},
 				],
@@ -139,36 +71,97 @@ export class Myob implements INodeType {
         const returnData: INodeExecutionData[] = [];
 
         for (let i = 0; i < items.length; i++) {
-            const baseUrl = this.getNodeParameter('baseUrl', i) as string;
-            const resource = this.getNodeParameter('resource', i) as string;
-            const operation = this.getNodeParameter('operation', i) as string;
+            try {
+                // Get credentials to build the base URL
+                const credentials = await this.getCredentials('myobOAuth2Api');
+                const baseUrl = `https://api.myob.com/accountright/${credentials.companyFileGuid}`;
+                
+                const customerUid = this.getNodeParameter('customerUid', i) as string;
+                const isTaxInclusive = this.getNodeParameter('isTaxInclusive', i) as boolean;
+                const customerPo = this.getNodeParameter('customerPo', i) as string;
+                const lineItemsData = this.getNodeParameter('lineItems', i) as any;
 
-            if (resource === 'salesOrder' && operation === 'createItem') {
-            const rawDate = (this.getNodeParameter('date', i) as string) || '';
-            const dateStr = rawDate.trim() !== '' ? rawDate : new Date().toISOString();
+                // Validate required fields
+                if (!customerUid) {
+                    throw new Error('Customer UID is required');
+                }
 
-            const linesWrapped = this.getNodeParameter('linesItem', i) as any[];
-            const lines = linesWrapped.map((w) => {
-                const l = w.line;
-                return {
-                Item: { UID: l.itemUid },
-                ShipQuantity: l.qty,
-                UnitPrice: l.unitPrice,
+                if (!lineItemsData || !lineItemsData.item || lineItemsData.item.length === 0) {
+                    throw new Error('At least one line item is required');
+                }
+
+                // Build lines array with SKU lookup
+                const lines = [];
+                for (const item of lineItemsData.item) {
+                    let itemUid = '';
+                    let itemDescription = item.description || '';
+                    
+                    // Look up Item UID from SKU
+                    if (item.sku && item.sku.trim() !== '') {
+                        try {
+                            const skuEncoded = encodeURIComponent(`'${item.sku}'`);
+                            const lookupUrl = `/Inventory/Item?$filter=Number eq ${skuEncoded}`;
+                            const lookupResponse: any = await myobRequest.call(this, 'GET', lookupUrl, {}, {}, baseUrl);
+                            
+                            if (lookupResponse && lookupResponse.Items && lookupResponse.Items.length > 0) {
+                                itemUid = lookupResponse.Items[0].UID;
+                                // Use MYOB description if no override provided
+                                if (!itemDescription || itemDescription.trim() === '') {
+                                    itemDescription = lookupResponse.Items[0].Description || '';
+                                }
+                            } else {
+                                throw new Error(`Item with SKU '${item.sku}' not found in MYOB`);
+                            }
+                        } catch (error: any) {
+                            throw new Error(`Failed to lookup SKU '${item.sku}': ${error.message}`);
+                        }
+                    } else {
+                        throw new Error('SKU is required for each line item');
+                    }
+
+                    const lineItem: any = {
+                        Item: { UID: itemUid },
+                        ShipQuantity: item.quantity,
+                        UnitPrice: item.unitPrice,
+                    };
+
+                    // Add TaxCode if provided
+                    if (item.taxCodeUid && item.taxCodeUid.trim() !== '') {
+                        lineItem.TaxCode = { UID: item.taxCodeUid };
+                    }
+
+                    // Add description if available
+                    if (itemDescription && itemDescription.trim() !== '') {
+                        lineItem.Description = itemDescription;
+                    }
+
+                    lines.push(lineItem);
+                }
+
+                // Build the payload according to MYOB Business API structure
+                const payload = {
+                    OrderType: 'Item',
+                    Customer: { UID: customerUid },
+                    Date: new Date().toISOString(),
+                    IsTaxInclusive: isTaxInclusive,
+                    Lines: lines,
                 };
-            });
 
-            const payload = {
-                OrderType: 'Item',
-                Customer: { UID: this.getNodeParameter('customerUid', i) as string },
-                Date: dateStr,
-                IsTaxInclusive: this.getNodeParameter('isTaxInclusive', i) as boolean,
-                Lines: lines,
-            };
+                // Add optional customer PO if provided
+                if (customerPo && customerPo.trim() !== '') {
+                    (payload as any).CustomerPO = customerPo;
+                }
 
-            const res: any = await myobRequest.call(this, 'POST', '/Sale/Order/Item', payload, {}, baseUrl);
-            returnData.push({ json: res ?? {} });
-            } else {
-            throw new Error('Operation not implemented');
+                // Make the API call to create sales order
+                const res: any = await myobRequest.call(this, 'POST', '/Sale/Order/Item', payload, {}, baseUrl);
+                returnData.push({ json: res ?? {} });
+                
+            } catch (error: any) {
+                if (this.continueOnFail()) {
+                    returnData.push({ json: { error: error.message || error.toString() } });
+                } else {
+                    throw error;
+                }
             }
         }
 

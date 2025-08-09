@@ -8,29 +8,29 @@ export async function myobRequest(
 	qs: Record<string, unknown>,
 	baseUrl: string, // e.g. https://api.myob.com/accountright/{companyFileGuid}
 ) {
-	const oauth = await this.getCredentials('myobOAuth2Api').catch(() => null);
-	const cf = await this.getCredentials('myobCompanyFileApi');
+	// Get OAuth2 credentials (includes company file username/password)
+	const credentials = await this.getCredentials('myobOAuth2Api');
 
+	// Base headers required for all MYOB API calls
 	const headers: Record<string, string> = {
 		'x-myobapi-version': 'v2',
-		'x-myobapi-cftoken': Buffer.from(`${cf.user}:${cf.password}`).toString('base64'),
+		'x-myobapi-cftoken': Buffer.from(`${credentials.companyFileUsername}:${credentials.companyFilePassword}`).toString('base64'),
+		'x-myobapi-key': String(credentials.clientId),
 		'Content-Type': 'application/json',
+		'Accept': 'application/json',
 	};
-
-	// Cloud calls also include API key and Authorization via OAuth helper
-	if (oauth?.clientId && oauth?.includeApiKey) headers['x-myobapi-key'] = String(oauth.clientId);
 
 	const options: any = {
-		method, uri: `${baseUrl}${resource}`, qs, body, json: true, headers,
+		method, 
+		uri: `${baseUrl}${resource}`, 
+		qs, 
+		body, 
+		json: true, 
+		headers,
 	};
 
-	// Local API (no OAuth configured)
-	if (!oauth) {
-		// @ts-ignore
-		return this.helpers.request!(options);
-	}
-
-	// Cloud API
+	// Use N8N's OAuth2 helper for cloud API calls
+	// This will automatically handle the Authorization header with Bearer token
 	// @ts-ignore
 	return this.helpers.requestWithAuthentication!.call(this, 'myobOAuth2Api', options);
 }

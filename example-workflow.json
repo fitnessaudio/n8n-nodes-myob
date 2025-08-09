@@ -1,0 +1,61 @@
+{
+  "name": "MYOB Sales Order Example",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "position": [240, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "customerUid": "12345678-abcd-1234-abcd-123456789abc",
+        "customerPo": "PO-12345",
+        "isTaxInclusive": true,
+        "lineItems": {
+          "item": [
+            {
+              "sku": "WIDGET-001",
+              "quantity": 2,
+              "unitPrice": 50.00,
+              "description": "Custom widget - automated order"
+            }
+          ]
+        }
+      },
+      "id": "myob-create-order",
+      "name": "Create MYOB Sales Order",
+      "type": "n8n-nodes-myob.myob",
+      "position": [460, 300],
+      "typeVersion": 1,
+      "credentials": {
+        "myobCompanyFileApi": {
+          "id": "company-file-creds",
+          "name": "MYOB Company File Credentials"
+        },
+        "myobOAuth2Api": {
+          "id": "oauth2-creds",
+          "name": "MYOB OAuth2 Credentials"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Create MYOB Sales Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
