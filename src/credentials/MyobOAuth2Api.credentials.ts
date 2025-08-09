@@ -1,4 +1,4 @@
-import { ICredentialType, CredentialsProperty } from 'n8n-workflow';
+import { ICredentialType, INodeProperties } from 'n8n-workflow';
 
 export class MyobOAuth2Api implements ICredentialType {
 	name = 'myobOAuth2Api';

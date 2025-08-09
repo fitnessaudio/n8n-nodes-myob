@@ -54,7 +54,7 @@ export class Myob implements INodeType {
 				displayName: 'Date',
 				name: 'date',
 				type: 'string',
-				default: () => new Date().toISOString(),
+				default: '',
 				displayOptions: { show: { resource: ['salesOrder'], operation: ['createItem'] } },
 			},
 			{
@@ -160,7 +160,7 @@ export class Myob implements INodeType {
 				const payload: any = {
 					OrderType: 'Item',
 					Customer: { UID: this.getNodeParameter('customerUid', i) as string },
-					Date: this.getNodeParameter('date', i) as string,
+					Date: date,
 					IsTaxInclusive: this.getNodeParameter('isTaxInclusive', i) as boolean,
 					JournalMemo: this.getNodeParameter('journalMemo', i) as string || undefined,
 					CustomerPurchaseOrderNumber: this.getNodeParameter('customerPo', i, '') || undefined,
