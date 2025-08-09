@@ -1,6 +1,7 @@
 import {
-	IExecuteFunctions, INodeExecutionData, INodeType, INodeTypeDescription,
-} from 'n8n-workflow';
+  INodeType, INodeTypeDescription, IExecuteFunctions, INodeExecutionData,
+  NodeConnectionType, // <-- add this
+        } from 'n8n-workflow';
 import { myobRequest } from '../transport/MyobApi.request';
 
 export class Myob implements INodeType {
@@ -9,6 +10,8 @@ export class Myob implements INodeType {
 		name: 'myob',
 		group: ['transform'],
 		version: 1,
+        inputs: [NodeConnectionType.Main],
+        outputs: [NodeConnectionType.Main],
 		description: 'Interact with MYOB AccountRight API',
 		defaults: { name: 'MYOB' },
 		credentials: [
@@ -132,58 +135,43 @@ export class Myob implements INodeType {
 	};
 
 	async execute(this: IExecuteFunctions) {
-		const items = this.getInputData();
-		const returnData: INodeExecutionData[] = [];
+        const items = this.getInputData();
+        const returnData: INodeExecutionData[] = [];
 
-		for (let i = 0; i < items.length; i++) {
-			const baseUrl = this.getNodeParameter('baseUrl', i) as string;
-			const resource = this.getNodeParameter('resource', i) as string;
-			const operation = this.getNodeParameter('operation', i) as string;
+        for (let i = 0; i < items.length; i++) {
+            const baseUrl = this.getNodeParameter('baseUrl', i) as string;
+            const resource = this.getNodeParameter('resource', i) as string;
+            const operation = this.getNodeParameter('operation', i) as string;
 
-			if (resource === 'salesOrder' && operation === 'createItem') {
-				// Build payload
-				const linesIn = (this.getNodeParameter('linesItem', i) as any[]).map((wrapper) => wrapper.line);
-				const lines = linesIn.map((l) => {
-					const line: any = {
-						Item: { UID: l.itemUid },
-						ShipQuantity: l.qty,
-						UnitPrice: l.unitPrice,
-					};
-					if (l.description) line.Description = l.description;
-					if (l.discountPercent) line.DiscountPercent = l.discountPercent;
-					if (l.discountAmount) line.DiscountAmount = l.discountAmount;
-					if (l.taxCodeUid) line.TaxCode = { UID: l.taxCodeUid };
-					if (l.locationUid) line.Location = { UID: l.locationUid };
-					return line;
-				});
+            if (resource === 'salesOrder' && operation === 'createItem') {
+            const rawDate = (this.getNodeParameter('date', i) as string) || '';
+            const dateStr = rawDate.trim() !== '' ? rawDate : new Date().toISOString();
 
-				const payload: any = {
-					OrderType: 'Item',
-					Customer: { UID: this.getNodeParameter('customerUid', i) as string },
-					Date: date,
-					IsTaxInclusive: this.getNodeParameter('isTaxInclusive', i) as boolean,
-					JournalMemo: this.getNodeParameter('journalMemo', i) as string || undefined,
-					CustomerPurchaseOrderNumber: this.getNodeParameter('customerPo', i, '') || undefined,
-					PromisedDate: this.getNodeParameter('promisedDate', i, '') || undefined,
-					Freight: this.getNodeParameter('freight', i, 0) || undefined,
-					FreightTaxCode: (() => {
-						const uid = this.getNodeParameter('freightTaxCodeUid', i, '') as string;
-						return uid ? { UID: uid } : undefined;
-					})(),
-					Lines: lines,
-				};
+            const linesWrapped = this.getNodeParameter('linesItem', i) as any[];
+            const lines = linesWrapped.map((w) => {
+                const l = w.line;
+                return {
+                Item: { UID: l.itemUid },
+                ShipQuantity: l.qty,
+                UnitPrice: l.unitPrice,
+                };
+            });
 
-				// POST
-				const res: any = await myobRequest.call(this, 'POST', '/Sale/Order/Item', payload, {}, baseUrl);
+            const payload = {
+                OrderType: 'Item',
+                Customer: { UID: this.getNodeParameter('customerUid', i) as string },
+                Date: dateStr,
+                IsTaxInclusive: this.getNodeParameter('isTaxInclusive', i) as boolean,
+                Lines: lines,
+            };
 
-				// Normalize to array of outputs
-				const out = (res && Array.isArray(res)) ? res : [res ?? {}];
-				out.forEach((r) => returnData.push({ json: r }));
-			} else {
-				throw new Error('Operation not implemented');
-			}
-		}
+            const res: any = await myobRequest.call(this, 'POST', '/Sale/Order/Item', payload, {}, baseUrl);
+            returnData.push({ json: res ?? {} });
+            } else {
+            throw new Error('Operation not implemented');
+            }
+        }
 
-		return this.prepareOutputData(returnData);
-	}
+        return this.prepareOutputData(returnData);
+    }
 }

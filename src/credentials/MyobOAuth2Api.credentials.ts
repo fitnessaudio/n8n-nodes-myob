@@ -4,7 +4,7 @@ export class MyobOAuth2Api implements ICredentialType {
 	name = 'myobOAuth2Api';
 	displayName = 'MYOB OAuth2 (Cloud)';
 	extends = ['oAuth2Api'];
-	properties: CredentialsProperty[] = [
+	properties: INodeProperties[] = [
 		{ displayName: 'Client ID', name: 'clientId', type: 'string', default: '' },
 		{ displayName: 'Client Secret', name: 'clientSecret', type: 'string', typeOptions:{password:true}, default: '' },
 		{ displayName: 'Auth URL', name: 'authUrl', type: 'hidden', default: 'https://secure.myob.com/oauth2/account/authorize' },
