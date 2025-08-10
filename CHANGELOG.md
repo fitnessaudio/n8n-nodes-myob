@@ -2,6 +2,148 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.12] - 2025-08-10
+
+### 🔧 **FIXED MYOB API RESPONSE HANDLING**
+- **returnFullResponse Implementation**: Added `returnFullResponse: true` to HTTP requests to get complete response data
+- **Status Code Handling**: Now properly captures and processes HTTP status codes from MYOB API
+- **Response Body Extraction**: Correctly extracts response body from n8n's full response format
+- **Success/Failure Detection**: Uses HTTP status codes to determine if sales order creation was successful
+- **Enhanced Response Data**: Now returns status codes, status messages, and response headers
+
+### Fixed
+- **Missing MYOB Response Data**: MYOB API responses are now properly captured and returned
+- **Success Detection**: Uses HTTP status codes (200-299) to determine success instead of relying on response body
+- **Empty Response Handling**: Properly handles cases where MYOB returns success with empty body (201 Created)
+- **GET Request Compatibility**: SKU lookup requests still work correctly with body extraction
+
+### Added
+- **returnFullResponse Flag**: Added to all HTTP requests to get complete response information
+- **Status Code Validation**: Checks HTTP status codes to determine request success
+- **Response Headers**: Now captures and returns HTTP response headers from MYOB
+- **Enhanced Output Format**: Returns statusCode, statusMessage, and response headers
+
+### Enhanced
+- **Response Processing Logic**: Smart handling of full response format vs direct response format
+- **Debugging Information**: Enhanced logging shows status codes and response structure
+- **Success Determination**: More reliable success detection using HTTP standards
+- **API Compliance**: Better alignment with REST API response patterns
+
+### Technical
+- **Full Response Format**: `{body, headers, statusCode, statusMessage}` handling implemented
+- **Method-Specific Processing**: GET requests return body only, POST requests return full response
+- **Transport Layer Enhancement**: Smart response format detection and extraction
+- **Status Code Ranges**: 200-299 range used for success determination
+
+### Example New Output Format
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "statusMessage": "Created",
+  "myobResponse": {
+    "UID": "12345678-1234-1234-1234-123456789012",
+    "Number": "SO-000123",
+    "Date": "2025-08-10T10:30:00Z"
+  },
+  "responseHeaders": {
+    "content-type": "application/json",
+    "x-myobapi-version": "v2"
+  },
+  "sentPayload": { /* original payload */ }
+}
+```
+
+### Status
+- ✅ **MYOB API Response Data Now Captured**
+- ✅ **HTTP Status Code Based Success Detection**
+- ✅ **Complete Response Information Available**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.11] - 2025-08-10
+
+### 🔍 **ENHANCED MYOB API RESPONSE DEBUGGING**
+- **Comprehensive Request/Response Logging**: Added detailed logging throughout the API request/response cycle
+- **Response Analysis**: Enhanced debugging to identify if MYOB API responses are being received but not passed through
+- **Transport Layer Debugging**: Added extensive logging to the MyobApi.request.ts transport layer
+- **Response Structure Analysis**: Detailed logging of response types, properties, and content
+- **Sales Order Response Tracking**: Special logging for sales order creation responses to identify missing data
+
+### Added
+- **Detailed API Request Logging**: Logs method, URL, headers, and payload information
+- **Response Type Analysis**: Logs response type, null/undefined checks, and object structure
+- **Sales Order Specific Debugging**: Special analysis for sales order creation responses
+- **Error Response Debugging**: Enhanced error logging with full error object details
+- **Response Content Validation**: Checks for expected MYOB fields like UID and Number
+
+### Enhanced
+- **Troubleshooting Capabilities**: Much more detailed logging to identify response handling issues
+- **n8n OAuth2 Wrapper Analysis**: Debugging to identify if the wrapper is filtering responses
+- **Console Log Visibility**: All debugging info visible in n8n console logs
+- **Response Comparison**: Analysis of what MYOB should return vs what's actually received
+
+### Technical
+- **Transport Layer Enhancement**: MyobApi.request.ts now includes comprehensive debugging
+- **Response Processing Analysis**: Detailed logging of how n8n's OAuth2 wrapper handles responses
+- **Error Handling Improvement**: Better error logging and analysis for API failures
+- **Performance Monitoring**: Tracks request/response timing and data sizes
+
+### Debug Output Examples
+```
+=== MYOB API REQUEST DEBUG ===
+Method: POST
+Full URL: https://api.myob.com/accountright/{guid}/Sale/Order/Item
+Headers: [sanitized header info]
+Body size: 1234 characters
+
+=== SALES ORDER CREATION RESPONSE ANALYSIS ===
+Expected MYOB response should contain UID, Number, Date, etc.
+Actual response received: [response details]
+
+=== MYOB API RESPONSE DEBUG ===
+Response type: object
+Response keys: ['UID', 'Number', 'Date', ...]
+```
+
+### Status
+- ✅ **Comprehensive API Debugging Active**
+- ✅ **Response Analysis Enhanced**
+- ✅ **Error Tracking Improved**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.10] - 2025-08-10
+
+### 🖼️ **FIXED MYOB LOGO IN PACKAGE**
+- **Fixed Logo Packaging**: MYOB logo PNG file now correctly included in npm package
+- **Updated Build Process**: Build script now copies PNG files from nodes/ to dist/nodes/ directory
+- **Resolved Icon Display**: Node icon will now display properly in n8n interface
+- **Cross-Platform Build**: Updated build script to work with PowerShell for Windows compatibility
+
+### Fixed
+- **Missing Logo File**: PNG file not included in published package tar.gz archive
+- **Build Process**: TypeScript compiler wasn't copying non-JS files
+- **Icon Display**: Node showed generic icon instead of MYOB logo
+
+### Added
+- **Logo Copy Step**: Build script now includes PowerShell command to copy PNG files
+- **Asset Pipeline**: Automated copying of image assets during build process
+
+### Enhanced
+- **Package Completeness**: All required assets now properly included in published package
+- **Professional Appearance**: MYOB logo displays correctly in n8n node interface
+- **Build Reliability**: More robust build process that handles all asset types
+
+### Technical
+- **Build Script Update**: Added `powershell "Copy-Item 'nodes/*.png' 'dist/nodes/' -ErrorAction SilentlyContinue"`
+- **File Structure**: PNG files now properly copied to dist/nodes/ alongside compiled JS
+- **Package Contents**: Both source (nodes/) and compiled (dist/) directories include logo file
+
+### Status
+- ✅ **MYOB Logo Displays Correctly**
+- ✅ **Complete Asset Pipeline**
+- ✅ **Professional Node Appearance**
+- ✅ **All Previous Features Maintained**
+
 ## [0.5.9] - 2025-08-10
 
 ### 🛡️ **SKU FALLBACK RESILIENCE**

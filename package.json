@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-myob",
-  "version": "0.5.9",
+  "version": "0.5.14",
   "description": "Simple n8n node to create sales orders in MYOB Business API with multiple line items",
   "keywords": ["n8n-community-node-package", "n8n", "myob", "accountright", "sales-order"],
   "license": "MIT",
@@ -15,7 +15,7 @@
   },
   "main": "dist/index.js",
   "scripts": {
-    "build": "rimraf dist && tsc",
+    "build": "rimraf dist && tsc && powershell \"Copy-Item 'nodes/*.png' 'dist/nodes/' -ErrorAction SilentlyContinue\"",
     "dev": "tsc --watch",
     "format": "prettier --write .",
     "lint": "eslint . --ext .ts",

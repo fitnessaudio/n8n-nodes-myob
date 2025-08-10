@@ -264,23 +264,16 @@ export class Myob implements INodeType {
                             
                             // Calculate discount amount from Shopify discount_allocations
                             let discountAmount = 0;
-                            console.log('Processing item:', shopifyItem.sku || 'No SKU', 'Price:', shopifyItem.price);
-                            console.log('Discount allocations:', shopifyItem.discount_allocations);
-                            console.log('Total discount:', shopifyItem.total_discount);
                             
                             if (shopifyItem.discount_allocations && Array.isArray(shopifyItem.discount_allocations)) {
                                 discountAmount = shopifyItem.discount_allocations.reduce((total: number, discount: any) => {
                                     const discountValue = parseFloat(discount.amount || '0');
-                                    console.log('Adding discount allocation:', discountValue);
                                     return total + discountValue;
                                 }, 0);
                             } else if (shopifyItem.total_discount) {
                                 // Fallback to total_discount if discount_allocations not available
                                 discountAmount = parseFloat(shopifyItem.total_discount || '0');
-                                console.log('Using total_discount:', discountAmount);
                             }
-                            
-                            console.log('Final discount amount:', discountAmount);
                             
                             // Build description from available fields
                             let itemDescription = shopifyItem.title || shopifyItem.name || '';
@@ -518,30 +511,65 @@ export class Myob implements INodeType {
                     payload.ShipToAddress = shippingAddress;
                 }
 
-                // Debug: Log the payload being sent to MYOB
-                console.log('MYOB Payload:', JSON.stringify(payload, null, 2));
+                // Step 1: Create the sales order
+                const createResponse = await myobRequest.call(this, 'POST', '/Sale/Order/Item', payload, {}, baseUrl);
                 
-                // Make the API call to create sales order
-                const res: any = await myobRequest.call(this, 'POST', '/Sale/Order/Item', payload, {}, baseUrl);
+                // Check if creation was successful
+                let creationSuccessful = false;
+                if (createResponse && typeof createResponse === 'object' && 'statusCode' in createResponse) {
+                    creationSuccessful = createResponse.statusCode >= 200 && createResponse.statusCode < 300;
+                } else {
+                    // Assume success if we got any response without error
+                    creationSuccessful = true;
+                }
                 
-                // Debug: Log the response from MYOB
-                console.log('MYOB Response:', JSON.stringify(res, null, 2));
+                if (!creationSuccessful) {
+                    throw new Error('Failed to create sales order in MYOB');
+                }
                 
-                // Ensure we return the response properly with payload info
-                if (res) {
+                // Step 2: Look up the created sales order by purchase order number
+                if (cleanedPurchaseOrderNumber && cleanedPurchaseOrderNumber.trim() !== '') {
+                    try {
+                        const searchCriteria = `'${cleanedPurchaseOrderNumber}'`;
+                        const lookupUrl = `/Sale/Order/Item?$filter=CustomerPurchaseOrderNumber eq ${encodeURIComponent(searchCriteria)}`;
+                        
+                        const salesOrderResponse: any = await myobRequest.call(this, 'GET', lookupUrl, {}, {}, baseUrl);
+                        
+                        if (salesOrderResponse && salesOrderResponse.Items && salesOrderResponse.Items.length > 0) {
+                            // Return the found sales order data
+                            returnData.push({ 
+                                json: salesOrderResponse.Items[0] // Return the first matching sales order
+                            });
+                        } else {
+                            // Sales order created but not found in lookup (might be timing issue)
+                            returnData.push({ 
+                                json: {
+                                    success: true,
+                                    message: 'Sales order created successfully but not found in immediate lookup',
+                                    purchaseOrderNumber: cleanedPurchaseOrderNumber,
+                                    note: 'The sales order may take a moment to be available for search. Try searching manually in MYOB.'
+                                }
+                            });
+                        }
+                    } catch (lookupError: any) {
+                        // Sales order created but lookup failed
+                        returnData.push({ 
+                            json: {
+                                success: true,
+                                message: 'Sales order created successfully but lookup failed',
+                                purchaseOrderNumber: cleanedPurchaseOrderNumber,
+                                lookupError: lookupError.message,
+                                note: 'The sales order was created in MYOB but could not be retrieved immediately.'
+                            }
+                        });
+                    }
+                } else {
+                    // No purchase order number to search by
                     returnData.push({ 
                         json: {
-                            myobResponse: res,
-                            sentPayload: payload,
-                            success: true
-                        }
-                    });
-                } else {
-                    returnData.push({ 
-                        json: { 
-                            success: true, 
-                            message: 'Sales order created but no response data',
-                            sentPayload: payload
+                            success: true,
+                            message: 'Sales order created successfully',
+                            note: 'No purchase order number provided, so the created sales order cannot be retrieved automatically.'
                         }
                     });
                 }

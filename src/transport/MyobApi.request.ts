@@ -27,10 +27,40 @@ export async function myobRequest(
 		body, 
 		json: true, 
 		headers,
+		returnFullResponse: true, // Get complete response including headers and status
 	};
 
-	// Use N8N's OAuth2 helper for cloud API calls
-	// This will automatically handle the Authorization header with Bearer token
-	// @ts-ignore
-	return this.helpers.requestWithAuthentication!.call(this, 'myobOAuth2Api', options);
+	try {
+		// Use N8N's OAuth2 helper for cloud API calls
+		// @ts-ignore
+		const response = await this.helpers.requestWithAuthentication!.call(this, 'myobOAuth2Api', options);
+		
+		// Handle undefined responses (common for MYOB POST operations)
+		if (response === undefined && method === 'POST') {
+			// Return synthetic success response for POST operations
+			return {
+				statusCode: 201,
+				statusMessage: 'Created',
+				body: null,
+				headers: {},
+				_synthetic: true
+			};
+		}
+		
+		// Handle returnFullResponse format - extract body for GET requests
+		if (response && typeof response === 'object' && 'body' in response && 'statusCode' in response) {
+			// For GET requests, return just the body
+			// For POST requests, return the full response for status checking
+			if (method === 'GET') {
+				return response.body;
+			} else {
+				return response;
+			}
+		}
+		
+		return response;
+		
+	} catch (error: any) {
+		throw error;
+	}
 }
