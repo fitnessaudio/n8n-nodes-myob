@@ -77,7 +77,8 @@ When you save OAuth2 credentials in N8N:
    - OAuth2 (if using cloud)
 3. **Configure the node**:
    - **Customer UID**: The customer's unique ID
-   - **Line Items**: Add products with Item UID, quantity, and price
+   - **Input Method**: Choose UI Form or JSON Array
+   - **Line Items**: Add products with SKU, quantity, and price
    
    The base URL is automatically constructed from your OAuth2 credentials.
 
@@ -94,15 +95,70 @@ When you save OAuth2 credentials in N8N:
 - **Tax Code UID**: Tax code for line items (uses item default if not specified)
 - **Description**: Override item descriptions
 
-### Example
+### Examples
+
+**UI Form Method:**
 ```
 Customer UID: 98765-def-43210
+Input Method: UI Form
 Line Items:
   - SKU: WIDGET-001, Quantity: 2, Price: 50.00, Tax Code UID: tax-code-123
   - SKU: GADGET-002, Quantity: 1, Price: 75.00
 ```
 
-Result: Creates a sales order for $175 (2×$50 + 1×$75)
+**JSON Array Method (Dynamic):**
+```
+Customer UID: 98765-def-43210
+Input Method: JSON Array
+Default SKU: MISC-ITEM
+Default Tax Code UID: your-gst-tax-code-uid
+Line Items Data: {{ $json.line_items }}
+```
+
+**Direct Shopify Integration:**
+```
+Customer UID: 98765-def-43210
+Input Method: JSON Array
+Default SKU: SHOPIFY-ITEM
+Default Tax Code UID: GST-10-PERCENT
+Line Items Data: {{ $json.line_items }}
+```
+
+Result: Creates a sales order for $275 (2×$50 + 1×$75 + 5×$25)
+
+## Handling Dynamic Line Items
+
+### Use Cases for JSON Array Method:
+- **Shopify Orders**: Process orders with varying numbers of products
+- **CSV/Excel Import**: Bulk process sales orders from spreadsheets
+- **API Integration**: Handle line items from external systems
+- **Database Queries**: Create orders from database results
+
+### n8n Expression Examples:
+```javascript
+// From previous node data (e.g., Shopify order)
+{{ $json.line_items.map(item => ({
+  sku: item.sku,
+  quantity: item.quantity,
+  unitPrice: item.price
+})) }}
+
+// From CSV data with multiple rows
+{{ $input.all().map(row => ({
+  sku: row.json.product_sku,
+  quantity: row.json.qty,
+  unitPrice: row.json.price,
+  description: row.json.notes
+})) }}
+```
+
+### JSON Array Format:
+Each line item object can include:
+- **sku** (required): The item SKU/number
+- **quantity** (required): Number to order
+- **unitPrice** (required): Price per item
+- **taxCodeUid** (optional): Specific tax code
+- **description** (optional): Override item description
 
 ## Troubleshooting
 

@@ -2,6 +2,516 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.9] - 2025-08-10
+
+### 🛡️ **SKU FALLBACK RESILIENCE**
+- **Smart SKU Fallback**: When a SKU lookup fails, node now automatically falls back to the Default SKU instead of stopping execution
+- **Improved Error Resilience**: No more workflow failures due to incorrect or missing SKUs from Shopify
+- **Seamless Processing**: Orders continue to process even when some products have incorrect SKUs
+- **Enhanced Console Logging**: Clear logs show when SKU fallback occurs for better troubleshooting
+
+### Fixed
+- **SKU Lookup Failures**: Node no longer fails with "Item with SKU 'WRONG-SKU' not found in MYOB" errors
+- **Workflow Continuity**: Orders process successfully even with SKU mismatches
+- **Automatic Recovery**: Falls back to default SKU for both missing SKUs and API lookup errors
+
+### Added
+- **Automatic SKU Fallback**: When primary SKU fails, automatically uses Default SKU
+- **Enhanced Logging**: Console logs show SKU fallback process for debugging
+- **Multiple Fallback Scenarios**: Handles empty SKUs, missing SKUs, and lookup failures
+
+### Enhanced
+- **Robust Order Processing**: Workflows continue running despite SKU issues
+- **Better Error Handling**: Graceful fallback instead of hard failures
+- **Updated Field Description**: Default SKU field now mentions fallback functionality
+
+### Console Log Examples
+```
+✅ Normal: SKU 'VALID-SKU' found and processed
+⚠️ Fallback: SKU 'WRONG-SKU' not found in MYOB, falling back to default SKU 'DEFAULT-ITEM'
+⚠️ Fallback: No SKU provided for item, using default SKU 'DEFAULT-ITEM'
+⚠️ Fallback: Failed to lookup SKU 'NETWORK-ERROR': Connection timeout, falling back to default SKU 'DEFAULT-ITEM'
+```
+
+### Use Cases
+- **Shopify Integration**: Handle product SKU mismatches without stopping order processing
+- **Data Quality Issues**: Continue processing even with incomplete product data
+- **API Reliability**: Graceful handling of network/API errors during SKU lookups
+- **Development/Testing**: Use default SKU for testing without requiring exact SKU matches
+
+### Technical
+- **Fallback Logic**: Automatically tries Default SKU when primary SKU fails
+- **Error Classification**: Distinguishes between SKU not found vs API errors
+- **Multiple Recovery Paths**: Handles various failure scenarios gracefully
+- **Preserved Functionality**: All existing features maintained with added resilience
+
+### Status
+- ✅ **Automatic SKU Fallback Active**
+- ✅ **Improved Workflow Resilience**
+- ✅ **Enhanced Error Recovery**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.8] - 2025-08-10
+
+### 📈 **FIXED DISCOUNT CALCULATION + SHIPPING DESCRIPTION**
+- **Fixed Discount Percentage Calculation**: Now calculates discount percentage based on total line value (unit price × quantity) instead of just unit price
+- **Added Shipping Description Field**: New optional field to set custom description for shipping line items
+- **Correct Multi-Quantity Discounts**: Fixes issue where items with quantity > 1 had incorrect discount percentages
+- **Enhanced Shipping Control**: Can now override shipping item description or use MYOB defaults
+
+### Fixed
+- **Discount Calculation**: For items with quantity > 1, discount percentage now calculated correctly
+  - Old: `(discountAmount / unitPrice) * 100` 
+  - New: `(discountAmount / (unitPrice × quantity)) * 100`
+- **Example**: $4.80 discount on 2×$24.00 items now shows 10% instead of 20%
+
+### Added
+- **Shipping Description Field**: Optional field to customize shipping line item description
+- **Enhanced Debug Logging**: Shows unit price, quantity, and total line value in discount calculations
+
+### Enhanced
+- **Accurate Discount Percentages**: Multi-quantity line items now show correct discount percentages in MYOB
+- **Better Shipping Control**: Choose between custom shipping description or MYOB item defaults
+- **Improved Calculations**: More detailed logging shows the complete discount calculation process
+
+### Example Fixed Calculation
+```
+Shopify Data:
+- Item: Windscreens, Price: $24.00, Quantity: 2, Discount: $4.80
+- Total Line Value: $48.00
+
+Old Calculation: 4.80 / 24.00 * 100 = 20% ❌
+New Calculation: 4.80 / 48.00 * 100 = 10% ✅
+
+Console Log: "Converted discount amount 4.80 to percentage: 10% (unit price: 24, quantity: 2, total line value: 48)"
+```
+
+### Technical
+- **Proper Line Total Calculation**: Discount percentage based on (unit price × quantity)
+- **Shipping Description Parameter**: New `shippingDescription` field added to node interface
+- **Enhanced Debugging**: More comprehensive logging for discount calculation troubleshooting
+
+### Status
+- ✅ **Correct Multi-Quantity Discount Percentages**
+- ✅ **Custom Shipping Descriptions Available**
+- ✅ **Enhanced Discount Calculation Logging**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.7] - 2025-08-10
+
+### 🎯 **CORRECT DISCOUNT FIELD - BUSINESS API V2 COMPLIANT**
+- **Fixed Discount Field**: Changed from discount amount to `DiscountPercent` to match MYOB Business API v2 specification
+- **Automatic Percentage Conversion**: Now converts Shopify discount amounts to percentages automatically
+- **Proper API Compliance**: Uses correct field structure from MYOB Business API v2 documentation
+- **Smart Calculation**: Calculates discount percentage as (discountAmount / unitPrice) * 100
+- **Enhanced Logging**: Added conversion logging to show discount amount → percentage calculation
+
+### Fixed
+- Discount field now uses `DiscountPercent` (percentage) instead of flat discount amount
+- Proper API compliance with MYOB Business API v2 Sale/Order/Item endpoint
+- Automatic conversion from Shopify discount amounts to MYOB discount percentages
+
+### Added
+- Automatic discount amount to percentage conversion
+- Enhanced logging showing discount conversion process
+- Precision rounding to 2 decimal places for discount percentages
+- Safety checks to prevent division by zero
+
+### Enhanced
+- **Shopify Compatibility**: Seamlessly converts Shopify flat discount amounts to MYOB percentages
+- **API Accuracy**: Now follows exact MYOB Business API v2 field specifications
+- **Better Debugging**: Logs show both original amount and calculated percentage
+
+### Example Conversion
+```
+Shopify: $31.35 discount on $97.00 item
+MYOB: 32.32% discount (31.35 / 97.00 * 100)
+
+Console Log: "Converted discount amount 31.35 to percentage: 32.32% (price: 97.00)"
+```
+
+### Technical
+- Uses MYOB Business API v2 Sale/Order/Item field structure
+- Prevents errors by checking unitPrice > 0 before conversion
+- Rounds percentages to 2 decimal places for precision
+- Maintains backward compatibility with existing workflows
+
+### Status
+- ✅ **MYOB Business API v2 Compliant Discount Field**
+- ✅ **Automatic Amount-to-Percentage Conversion**
+- ✅ **Enhanced Conversion Logging**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.6] - 2025-08-10
+
+### 🔧 **DISCOUNT FIELD FIX + PAYLOAD VISIBILITY**
+- **Fixed Discount Field Case**: Changed discount field from `"Discount"` to `"discount"` (lowercase) to match MYOB EXO API documentation
+- **Added Payload to Output**: Node output now includes the exact payload sent to MYOB for debugging purposes
+- **Enhanced Output Structure**: Output now shows both MYOB response and sent payload for complete transparency
+- **Better Debugging**: Can now see exactly what data is being sent to MYOB API
+
+### Fixed
+- Discount field case sensitivity (`"discount"` instead of `"Discount"`) based on MYOB EXO API docs
+- Output structure now includes complete payload information
+
+### Added
+- `sentPayload` field in node output showing exact data sent to MYOB
+- `myobResponse` field containing the API response from MYOB
+- Enhanced output structure for better debugging and transparency
+
+### Enhanced
+- **Complete Visibility**: See both what was sent and what was received
+- **Better Troubleshooting**: Full payload visibility helps identify API issues
+- **API Compliance**: Lowercase field names matching MYOB EXO documentation
+
+### Output Structure Example
+```json
+{
+  "success": true,
+  "myobResponse": { /* MYOB API Response */ },
+  "sentPayload": {
+    "OrderType": "Item",
+    "Lines": [
+      {
+        "discount": 31.35,
+        "UnitPrice": 97.00,
+        /* ... other fields */
+      }
+    ]
+  }
+}
+```
+
+### Status
+- ✅ **Lowercase Discount Field (EXO API Compliant)**
+- ✅ **Complete Payload Visibility in Output**
+- ✅ **Enhanced Debugging Capabilities**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.5] - 2025-08-10
+
+### 🔍 **DISCOUNT DEBUGGING ENHANCED**
+- **Enhanced Discount Debugging**: Added detailed console logs for discount calculation process
+- **Improved Discount Tracing**: Better visibility into Shopify discount data processing
+- **Debug Logging**: Console logs now show:
+  - Item processing details (SKU, price)
+  - Discount allocations array content
+  - Total discount fallback values
+  - Individual discount allocation amounts
+  - Final calculated discount amount
+
+### Added
+- Comprehensive discount debugging with console.log statements
+- Step-by-step discount calculation visibility
+- Enhanced troubleshooting capabilities for discount issues
+
+### Enhanced
+- **Discount Calculation Transparency**: Full visibility into discount processing logic
+- **Better Troubleshooting**: Console logs help identify where discount calculations may fail
+- **Debug Information**: All discount-related data logged for analysis
+
+### Technical
+- Added console.log statements throughout discount calculation process
+- Improved debugging workflow for discount-related issues
+- Better error tracing for Shopify discount integration
+
+### Debug Output Example
+```
+Processing item: LED-FLEX-3K Price: 97.00
+Discount allocations: [{"amount": "31.35"}]
+Total discount: undefined
+Adding discount allocation: 31.35
+Final discount amount: 31.35
+```
+
+### Status
+- ✅ **Enhanced Discount Debugging Active**
+- ✅ **Console Logging for Troubleshooting**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.4] - 2025-08-10
+
+### 🔧 **DISCOUNT FIELD CORRECTION**
+- **Fixed MYOB Discount Field**: Corrected discount field name from `DiscountAmount` to `Discount` for proper MYOB API compatibility
+- **Verified Output**: Confirmed JSON output display in n8n interface shows complete MYOB API response
+- **Discount Integration**: Now properly applies Shopify discount amounts using correct MYOB field name
+
+### Fixed
+- MYOB API discount field name (`Discount` instead of `DiscountAmount`)
+- Discount amounts now properly applied to MYOB sales order line items
+- JSON output correctly displays MYOB API response in n8n interface
+
+### Technical
+- Corrected field mapping for MYOB Business API discount structure
+- Maintained all existing discount calculation logic
+- Output handling confirmed working for JSON display
+
+### Status
+- ✅ **Correct MYOB Discount Field Name**
+- ✅ **Shopify Discounts Applied to MYOB**
+- ✅ **JSON Output Display Working**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.3] - 2025-08-10
+
+### 💰 **SHOPIFY DISCOUNT SUPPORT & IMPROVEMENTS**
+- **Shopify Discount Integration**: Automatically extracts and applies Shopify discount amounts to MYOB line items
+- **Smart Discount Detection**: Supports both `discount_allocations` array and `total_discount` fallback
+- **MYOB Discount Field**: Adds `DiscountAmount` field to line items when discounts are present
+- **Clean Shipping Items**: Shipping line items no longer include blank descriptions (uses MYOB inventory default)
+- **Enhanced JSON Output**: Node now returns the complete MYOB API response as JSON for better integration
+
+### Added
+- **Discount Amount Processing**: Calculates total discount per line item from Shopify data
+- **DiscountAmount Field**: Adds discount amounts directly to MYOB sales order line items
+- **Shopify discount_allocations Support**: Handles multiple discount applications per line item
+- **Complete API Response**: Returns full MYOB API response for downstream processing
+
+### Enhanced
+- **Discount Calculation**: Automatically sums all discount allocations per line item
+- **Fallback Logic**: Uses `total_discount` if `discount_allocations` not available
+- **Clean Integration**: Shipping items use MYOB inventory descriptions (no blank overrides)
+- **Better Output**: Full JSON response from MYOB API for better workflow integration
+
+### Technical
+- **Discount Processing**: Robust parsing of Shopify discount structures
+- **Error Handling**: Graceful handling of missing discount data
+- **API Response**: Complete MYOB response preserved in node output
+- **Performance**: Efficient discount calculation with reduce operations
+
+### Example Discount Processing
+```
+Shopify Line Item:
+- Price: $33.00
+- Discount Allocations: [{"amount": "31.35"}]
+- Result: MYOB Line Item with $31.35 discount
+
+Multiple Discounts:
+- discount_allocations: [{"amount": "10.00"}, {"amount": "5.50"}]
+- Result: Total discount of $15.50 applied to MYOB
+```
+
+### Status
+- ✅ **Shopify Discount Support Working**
+- ✅ **MYOB Discount Field Integration** 
+- ✅ **Clean Shipping Line Items**
+- ✅ **Complete JSON Output Response**
+- ✅ **Multiple Discount Types Supported**
+
+## [0.5.2] - 2025-08-10
+
+### 🛠️ **FINAL BUG FIXES & API CORRECTION**
+- **Fixed MYOB API Field**: Corrected Purchase Order field from `CustomerPO` and `PurchaseOrderNumber` to the correct `CustomerPurchaseOrderNumber`
+- **Removed Duplicate Field**: Eliminated redundant "Customer PO Number" field - now only one "Purchase Order Number" field
+- **Enhanced Execution Control**: Improved handling of multiple input items to prevent duplicate sales order creation
+- **Single Sales Order Guarantee**: Node now processes all input data as a single sales order execution
+
+### Fixed
+- Correct MYOB API field mapping for Purchase Order Number (`CustomerPurchaseOrderNumber`)
+- Removed duplicate purchase order fields causing confusion
+- Multiple sales order creation issue (final fix)
+- Input data processing to handle single execution properly
+
+### Changed
+- **Purchase Order Field**: Now uses correct MYOB API field `CustomerPurchaseOrderNumber`
+- **Cleaner UI**: Removed redundant "Customer PO Number" field
+- **Better Documentation**: Field descriptions updated for clarity
+
+### Technical
+- Improved input data validation and processing
+- Enhanced error handling for edge cases
+- Better execution flow control
+
+### Status
+- ✅ **Correct Purchase Order Field Working**
+- ✅ **Single Sales Order Creation Guaranteed** 
+- ✅ **Hash Symbol Auto-Removal Working**
+- ✅ **Multiple Line Items Per Order Working**
+- ✅ **Clean UI with Single Purchase Order Field**
+
+## [0.5.1] - 2025-08-09
+
+### 🐛 **CRITICAL BUG FIXES**
+- **Fixed Multiple Sales Orders**: Node was creating 3 sales orders instead of 1 - now creates exactly one per execution
+- **Fixed Purchase Order Number**: Purchase Order Number was missing from MYOB payload - now properly included
+- **Added # Symbol Removal**: Automatically removes # symbol from Purchase Order Number (e.g., "#831811-HAS" becomes "831811-HAS")
+- **Fixed Execution Loop**: Removed unnecessary loop that was processing each line item as separate sales order
+
+### Fixed
+- Multiple sales order creation issue (was creating one per line item)
+- Purchase Order Number field not being sent to MYOB API
+- Hash (#) symbol handling in Purchase Order Number
+- Node execution structure to process single sales order with multiple line items
+
+### Technical
+- Simplified execution to process only first input item
+- Fixed payload construction to include cleanedPurchaseOrderNumber
+- Improved field processing and validation
+- Better error handling for edge cases
+
+### Status
+- ✅ **Single Sales Order Creation Working**
+- ✅ **Purchase Order Number Field Working**
+- ✅ **Hash Symbol Auto-Removal Working**
+- ✅ **Multiple Line Items Per Order Working**
+
+## [0.5.0] - 2025-08-09
+
+### 🚀 **MAJOR FEATURE UPDATE: SHIPPING & ORDER ENHANCEMENTS!**
+- **Shipping Address Support**: Added 5 separate shipping address line fields that combine with newlines
+- **Automatic Shipping Line Item**: Added shipping SKU and price fields - automatically added as last line item
+- **Enhanced Order Fields**: Added Journal Memo, Comment, and Purchase Order Number fields
+- **Complete Order Management**: Full support for comprehensive sales order creation
+- **Shopify Shipping Ready**: Perfect for processing Shopify orders with shipping costs and addresses
+
+### Added
+- **Shipping Address Lines 1-5**: Separate fields that automatically combine with proper newlines (`\r\n`)
+- **Shipping SKU Field**: Automatically looks up shipping item (e.g., P&P1, P&P2) and adds as line item
+- **Shipping Price Field**: Sets unit price for shipping line item
+- **Journal Memo Field**: Internal memo for journal entries
+- **Comment Field**: Order comments and notes
+- **Purchase Order Number Field**: Additional PO reference field
+
+### Enhanced
+- **Smart Shipping Address Building**: Follows your existing logic - only adds non-empty lines with newlines
+- **Automatic Shipping Line Item**: If shipping SKU provided, automatically adds as last line item with quantity 1
+- **Tax Code Support**: Shipping line items use default tax code UID when provided
+- **Complete Order Data**: Supports all essential sales order fields for full integration
+
+### Technical
+- **Newline Handling**: Uses proper `\r\n` newline characters for MYOB compatibility
+- **SKU Lookup**: Shipping SKUs go through same validation and lookup process as regular items
+- **Error Handling**: Clear error messages if shipping SKU not found in MYOB
+- **Optional Fields**: All new fields are optional - won't break existing workflows
+
+### Use Cases
+- ✅ **Shopify Orders**: Complete order processing including shipping addresses and costs
+- ✅ **E-commerce Integration**: Handle shipping, taxes, and order metadata seamlessly
+- ✅ **Custom Shipping Items**: Use your existing P&P1, P&P2 SKUs for shipping costs
+- ✅ **Complete Order Tracking**: Journal memos, comments, and PO numbers for full audit trail
+- ✅ **Address Management**: Multi-line shipping addresses properly formatted
+
+### Field Mapping Example
+```
+Shipping Line 1: "123 Main Street"
+Shipping Line 2: "Unit 5"
+Shipping Line 3: "Business Park"
+Shipping Line 4: "Sydney NSW 2000"
+Shipping Line 5: "Australia"
+
+Result: "123 Main Street\r\nUnit 5\r\nBusiness Park\r\nSydney NSW 2000\r\nAustralia"
+
+Shipping SKU: "P&P1"
+Shipping Price: 15.00
+→ Adds line item with P&P1 at $15.00 (quantity 1)
+```
+
+## [0.4.4] - 2025-08-09
+
+### 🔧 **DATA PARSING FIX**
+- **Fixed JSON Parsing Error**: Fixed "Unexpected token 'o', "[object Obj"..." error when receiving already-parsed data
+- **Smart Data Detection**: Now handles both JSON strings and already-parsed JavaScript objects/arrays
+- **N8N Expression Support**: Works correctly with n8n expressions that return objects (like `{{ $json.line_items }}`)
+- **Backward Compatible**: Still supports JSON string input for manual data entry
+
+### Fixed
+- JSON parsing error when data comes from n8n expressions as objects instead of strings
+- Support for direct object/array input from Shopify webhooks and other data sources
+- Improved error handling for different data input formats
+
+### Enhanced
+- **Flexible Input**: Automatically detects and handles string, array, or object input data
+- **Error Prevention**: Better validation and error messages for invalid data formats
+- **Shopify Ready**: Works seamlessly with `{{ $json.line_items }}` expressions
+
+### Technical
+- Added type checking for input data (string vs object vs array)
+- Improved data parsing logic to handle n8n's dynamic data types
+- Enhanced error reporting for debugging data format issues
+
+## [0.4.3] - 2025-08-09
+
+### 🔧 **SHOPIFY EMPTY SKU FIX**
+- **Empty SKU Handling**: Fixed handling of empty SKU strings (`sku: ""`) from Shopify
+- **Enhanced Data Extraction**: Improved parsing of Shopify line items with better field mapping
+- **Variant Title Support**: Now includes variant_title in item description (e.g., "FlexLED 24v - 3000k")
+- **Robust Price Parsing**: Better handling of string-to-number conversion for prices
+- **Current Quantity Priority**: Uses `current_quantity` when available, falls back to `quantity`
+
+### Fixed
+- Empty SKU string detection (now properly uses default SKU for `sku: ""`)
+- Price parsing from string values in Shopify data
+- Description building with variant titles
+
+### Enhanced
+- **Smart SKU Detection**: Handles both missing SKU properties and empty SKU strings
+- **Better Descriptions**: Combines title + variant_title for clearer line item descriptions
+- **Shopify Field Priority**: Uses the most appropriate Shopify fields for each MYOB field
+
+### Shopify Data Processing
+```
+Shopify Item 1: {"sku": "LED-FLEX-3K", "quantity": 1, "price": "97.00", "title": "FlexLED", "variant_title": "3000k"}
+→ SKU: "LED-FLEX-3K", Quantity: 1, Price: 97.00, Description: "FlexLED - 3000k"
+
+Shopify Item 2: {"sku": "", "quantity": 1, "price": "97.00", "title": "FlexLED", "variant_title": "4000k"}
+→ SKU: "DEFAULT-ITEM", Quantity: 1, Price: 97.00, Description: "FlexLED - 4000k"
+```
+
+## [0.4.2] - 2025-08-09
+
+### 🛒 **SHOPIFY DIRECT INTEGRATION!**
+- **Default SKU Support**: Added default SKU field for items without SKUs
+- **Default Tax Code**: Added default Tax Code UID applied to all line items
+- **Shopify Data Structure**: Direct support for Shopify webhook line_items array format
+- **Smart Data Extraction**: Automatically extracts sku, quantity, price, title from Shopify data
+- **Fallback Values**: Uses sensible defaults for missing data (default SKU, quantity 1, price 0)
+- **Seamless Integration**: Just paste {{ $json.line_items }} directly from Shopify webhook
+
+### Added
+- **Default SKU Field**: Fallback SKU when line items have empty/missing SKU
+- **Default Tax Code UID Field**: Applied to all line items automatically
+- **Shopify Data Parser**: Understands Shopify line_items structure natively
+- **Smart Field Mapping**: Maps title→description, current_quantity→quantity automatically
+
+### Enhanced
+- **Zero Configuration**: Works directly with Shopify webhook data out of the box
+- **Error Prevention**: Default values prevent failures from missing data
+- **Flexible Data Sources**: Works with Shopify, WooCommerce, or any e-commerce platform
+
+### Shopify Integration Example
+```
+Input Method: JSON Array
+Default SKU: MISC-ITEM
+Default Tax Code UID: your-gst-tax-code-uid
+Line Items Data: {{ $json.line_items }}
+```
+
+## [0.4.1] - 2025-08-09
+
+### 🔄 **DYNAMIC LINE ITEMS SUPPORT!**
+- **JSON Array Input**: Added JSON input method for dynamic line items of varying sizes
+- **Flexible Input Methods**: Choose between UI Form or JSON Array based on your use case
+- **Perfect for Integration**: Handle Shopify orders, CSV imports, API data with varying item counts
+- **n8n Expression Support**: Full compatibility with n8n expressions and data mapping
+- **Comprehensive Documentation**: Added examples and use cases for dynamic data handling
+
+### Added
+- **Input Method Selection**: Toggle between "UI Form" and "JSON Array" input methods
+- **JSON Line Items Field**: Accept line items as properly formatted JSON array
+- **Dynamic Processing**: Handle any number of line items from external data sources
+- **Expression Examples**: Provided n8n expression examples for common use cases
+
+### Enhanced
+- **User Experience**: Users can now choose the input method that works best for their workflow
+- **Integration Flexibility**: Perfect for e-commerce, ERP, and bulk processing scenarios
+- **Documentation**: Comprehensive examples for Shopify, CSV, and API integrations
+
+### Use Cases
+- ✅ **Shopify Integration**: Process orders with varying product counts
+- ✅ **CSV/Excel Processing**: Bulk import sales orders from spreadsheets
+- ✅ **API Integration**: Handle dynamic data from external systems
+- ✅ **Database Queries**: Create orders from database results with variable line items
+
 ## [0.4.0] - 2025-08-09
 
 ### 🚀 **MAJOR UPGRADE: SKU AUTO-LOOKUP!**
