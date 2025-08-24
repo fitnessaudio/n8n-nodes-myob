@@ -28,6 +28,15 @@ export class Myob implements INodeType {
 				description: 'The unique ID of the customer (GUID format)',
 			},
 			{
+				displayName: 'Order Date',
+				name: 'orderDate',
+				type: 'string',
+				default: '',
+				required: false,
+				description: 'Sales order date in ISO format (e.g., 2025-08-24T04:32:01+10:00). If not provided, uses current date in n8n timezone.',
+				placeholder: '2025-08-24T04:32:01+10:00',
+			},
+			{
 				displayName: 'Tax Inclusive',
 				name: 'isTaxInclusive',
 				type: 'boolean',
@@ -200,6 +209,7 @@ export class Myob implements INodeType {
             const baseUrl = `https://api.myob.com/accountright/${credentials.companyFileGuid}`;
             
             const customerUid = this.getNodeParameter('customerUid', i) as string;
+            const orderDate = this.getNodeParameter('orderDate', i) as string;
             const isTaxInclusive = this.getNodeParameter('isTaxInclusive', i) as boolean;
             const journalMemo = this.getNodeParameter('journalMemo', i) as string;
             const comment = this.getNodeParameter('comment', i) as string;
@@ -486,10 +496,55 @@ export class Myob implements INodeType {
                 }
 
                 // Build the payload according to MYOB Business API structure
+                // Handle order date - use provided date or fallback to current date in n8n timezone
+                let formattedDate: string;
+                
+                if (orderDate && orderDate.trim() !== '') {
+                    // Use provided order date (should be in format like 2025-08-24T04:32:01+10:00)
+                    // Extract the local date part and preserve it, don't convert to UTC
+                    try {
+                        const providedDate = new Date(orderDate.trim());
+                        if (isNaN(providedDate.getTime())) {
+                            throw new Error(`Invalid order date format: ${orderDate}`);
+                        }
+                        
+                        // Extract the date/time parts from the original input to preserve local date
+                        // Parse the input to get the local date components
+                        const inputDateMatch = orderDate.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+                        if (inputDateMatch) {
+                            // Use the local date and time from input, format as ISO for MYOB
+                            const [, year, month, day, hour, minute, second] = inputDateMatch;
+                            formattedDate = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+                        } else {
+                            // Fallback: extract date from the Date object but keep it as local date
+                            const year = providedDate.getFullYear();
+                            const month = String(providedDate.getMonth() + 1).padStart(2, '0');
+                            const day = String(providedDate.getDate()).padStart(2, '0');
+                            const hour = String(providedDate.getHours()).padStart(2, '0');
+                            const minute = String(providedDate.getMinutes()).padStart(2, '0');
+                            const second = String(providedDate.getSeconds()).padStart(2, '0');
+                            formattedDate = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+                        }
+                        
+                        console.log(`Using provided order date: ${orderDate} -> ${formattedDate} (preserved local date/time)`);
+                    } catch (error) {
+                        throw new Error(`Invalid order date format: ${orderDate}. Expected format: 2025-08-24T04:32:01+10:00`);
+                    }
+                } else {
+                    // Fallback to current date in configured n8n timezone
+                    const timezone = this.getTimezone();
+                    const currentDate = new Date();
+                    
+                    // Create a date that represents today in the configured timezone
+                    const localDate = new Date(currentDate.toLocaleString("en-US", {timeZone: timezone}));
+                    formattedDate = localDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+                    console.log(`Using current date in timezone ${timezone}: ${formattedDate}`);
+                }
+                
                 const payload: any = {
                     OrderType: 'Item',
                     Customer: { UID: customerUid },
-                    Date: new Date().toISOString(),
+                    Date: formattedDate,
                     IsTaxInclusive: isTaxInclusive,
                     Lines: lines,
                 };

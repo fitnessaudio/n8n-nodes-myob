@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-myob",
-  "version": "0.5.15",
+  "version": "0.5.18",
   "description": "Simple n8n node to create sales orders in MYOB Business API with multiple line items",
   "keywords": [
     "n8n-community-node-package",

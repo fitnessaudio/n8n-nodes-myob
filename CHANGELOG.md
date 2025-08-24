@@ -2,6 +2,122 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.18] - 2025-08-24
+
+### 🔧 **FIXED DATE PRESERVATION ISSUE**
+- **Fixed UTC Conversion**: Order dates now preserve the local date/time from input instead of converting to UTC
+- **Date Preservation Logic**: Input `2025-08-24T04:32:01+10:00` now correctly becomes `2025-08-24T04:32:01.000Z` in MYOB
+- **No More Date Shifting**: Eliminates the issue where August 24th became August 23rd due to timezone conversion
+- **Enhanced Date Parsing**: Uses regex parsing to extract local date/time components directly from input
+- **Fallback Handling**: Maintains robust fallback for various date input formats
+
+### Fixed
+- **UTC Date Conversion Issue**: Previously input dates were converted to UTC, causing date shifting
+- **Date Component Preservation**: Now preserves the exact date and time values from user input
+- **Timezone Handling**: Avoids JavaScript Date object timezone conversion issues
+
+### Technical
+- **Regex Date Parsing**: Uses pattern matching to extract date/time components directly
+- **Local Date Preservation**: Constructs ISO string using original local date/time values
+- **Enhanced Logging**: Console shows "preserved local date/time" for clarity
+- **Fallback Logic**: Multiple parsing methods for different input formats
+
+### Example Fix
+```
+Input: 2025-08-24T04:32:01+10:00
+Old Output: 2025-08-23T18:32:01.000Z (UTC conversion)
+New Output: 2025-08-24T04:32:01.000Z (preserved local)
+```
+
+### Use Cases
+- **Multi-timezone Operations**: Date stays correct regardless of user's timezone
+- **Historical Data**: Past dates maintain their intended date values
+- **Future Scheduling**: Scheduled dates don't shift unexpectedly
+- **Data Migration**: Import dates preserve original date intentions
+
+### Status
+- ✅ **Local Date/Time Preservation**
+- ✅ **No UTC Conversion Issues**
+- ✅ **Enhanced Date Parsing Logic**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.17] - 2025-08-24
+
+### 📅 **ADDED ORDER DATE INPUT FIELD**
+- **Custom Order Date Support**: Added new "Order Date" input field allowing you to specify the exact date for sales orders
+- **ISO Date Format Support**: Accepts dates in ISO format with timezone (e.g., `2025-08-24T04:32:01+10:00`)
+- **Fallback to Timezone Logic**: If no date provided, falls back to current date in n8n configured timezone
+- **Full DateTime Control**: Preserves the exact date and time from your input, including timezone offset
+- **Flexible Input**: Optional field - works with existing workflows without changes
+
+### Added
+- **Order Date Field**: New optional string field for specifying sales order date
+- **Date Validation**: Validates date format and shows clear error messages for invalid dates
+- **Console Logging**: Shows which date is being used (provided vs. fallback) for debugging
+- **Format Examples**: Placeholder text shows expected date format
+
+### Enhanced
+- **Date Control**: Full control over sales order dates instead of relying on automatic date generation
+- **Integration Friendly**: Perfect for processing historical orders or scheduling future orders
+- **Timezone Preservation**: Maintains timezone information from input date
+- **Backward Compatible**: Existing workflows continue to work without modification
+
+### Technical
+- **Date Parsing**: Robust date parsing with proper error handling
+- **ISO String Conversion**: Converts input dates to proper ISO format for MYOB API
+- **Fallback Logic**: Smart fallback to timezone-adjusted current date when no date provided
+- **Validation**: Comprehensive date validation with helpful error messages
+
+### Use Cases
+- **Historical Orders**: Create sales orders with past dates for data migration
+- **Future Orders**: Schedule sales orders for future dates
+- **Exact Timing**: Specify precise date and time for order creation
+- **Multi-timezone**: Handle orders from different timezones with proper date handling
+- **Automated Workflows**: Pass dates from external systems (Shopify, databases, etc.)
+
+### Example Usage
+```
+Order Date: 2025-08-24T04:32:01+10:00
+Result: MYOB receives 2025-08-24T04:32:01.000Z
+
+Order Date: (empty)
+Result: Uses current date in n8n timezone
+```
+
+### Status
+- ✅ **Custom Order Date Input Available**
+- ✅ **ISO Format with Timezone Support**
+- ✅ **Fallback to Timezone Logic Maintained**
+- ✅ **All Previous Features Maintained**
+
+## [0.5.16] - 2025-08-24
+
+### 🌍 **FIXED TIMEZONE HANDLING FOR SALES ORDER DATES**
+- **Fixed Date Timezone Issue**: Sales order dates now respect the n8n configured timezone instead of always using UTC
+- **Localized Date Creation**: Date field in MYOB sales orders now uses the local date based on n8n timezone configuration
+- **Business Logic Improvement**: Ensures sales orders are created with the correct business date regardless of server timezone
+
+### Fixed
+- **UTC Date Issue**: Previously all sales orders were created with UTC dates, now uses configured timezone
+- **Date Accuracy**: Sales orders now show the correct date in MYOB based on business timezone
+- **Timezone Awareness**: Node now properly respects n8n's timezone configuration for date calculations
+
+### Technical
+- **Enhanced Date Handling**: Uses `this.getTimezone()` to get n8n's configured timezone
+- **Proper Date Conversion**: Converts current date to local timezone before formatting for MYOB API
+- **ISO Format Preservation**: Maintains ISO date format required by MYOB while using correct local date
+
+### Use Cases
+- **Australian Business**: If n8n is configured for Australian timezone, sales orders created at 9 AM will use the correct Australian date
+- **Multi-timezone Operations**: Businesses operating across timezones can ensure consistent date handling
+- **Accurate Reporting**: MYOB reports will show correct creation dates matching business operations
+
+### Status
+- ✅ **Timezone-Aware Date Creation**
+- ✅ **Respects n8n Configuration**
+- ✅ **Maintains MYOB API Compatibility**
+- ✅ **All Previous Features Maintained**
+
 ## [0.5.12] - 2025-08-10
 
 ### 🔧 **FIXED MYOB API RESPONSE HANDLING**
